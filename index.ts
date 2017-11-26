@@ -23,6 +23,8 @@ export interface FormValidatorOptions {
   inputBlockInvalidMod?: string;
   inputBlockErrorElem?: string;
   messages?: FormMessages;
+  revalidateOnChange?: boolean;
+  revalidateOnInput?: boolean;
 }
 
 export interface FormMessages {
@@ -55,7 +57,9 @@ const OPTION_DEFAULTS: FormValidatorOptions = {
   inputBlock: 'ib',
   inputBlockValidMod: 'valid',
   inputBlockInvalidMod: 'invalid',
-  inputBlockErrorElem: 'error'
+  inputBlockErrorElem: 'error',
+  revalidateOnChange: false,
+  revalidateOnInput: false
 };
 
 export class FormValidator {
@@ -183,6 +187,10 @@ export class FormValidator {
 
   get options(): FormValidatorOptions {
     return assign({}, this._options);
+  }
+
+  get liveValidation(): boolean {
+    return this._liveValidation;
   }
 
   static fromRoot(root: Element): FormValidator|null {
@@ -428,14 +436,24 @@ export class FormValidator {
       return;
     }
 
+    if (!this._options.revalidateOnInput && !this._options.revalidateOnChange) {
+      return;
+    }
+
     if (!this._elems) {
       this._buildConstraints();
     }
 
     for (let elemName of Object.keys(this._elems as any)) {
       let elemData = (this._elems as any)[elemName];
-      elemData.elem.addEventListener('change', this.onElementChange.bind(this, elemName));
-      elemData.elem.addEventListener('input', this.onElementChange.bind(this, elemName));
+
+      if (this._options.revalidateOnChange) {
+        elemData.elem.addEventListener('change', this.onElementChange.bind(this, elemName));
+      }
+
+      if (this._options.revalidateOnInput) {
+        elemData.elem.addEventListener('input', this.onElementChange.bind(this, elemName));
+      }
     }
 
     this._liveValidation = true;

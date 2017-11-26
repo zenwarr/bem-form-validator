@@ -116,11 +116,15 @@ describe('FormValidator', function() {
       let nameInput = (form.elements.namedItem('name') as HTMLInputElement);
       let emailInput = (form.elements.namedItem('email') as HTMLInputElement);
 
-      let validator = new FormValidator(form);
+      let validator = new FormValidator(form, {
+        revalidateOnInput: true
+      });
       putValidValues();
       nameInput.value = '';
       emailInput.value = '';
+      expect(validator.liveValidation).to.be.false;
       expect(validator.validate()).to.be.false;
+      expect(validator.liveValidation).to.be.true;
       expect(form.classList.contains('form--valid')).to.be.false;
 
       nameInput.value = 'some_name';
@@ -130,6 +134,27 @@ describe('FormValidator', function() {
       emailInput.value = 'email@example.com';
       emailInput.dispatchEvent(new Event('input'));
       expect(form.classList.contains('form--valid')).to.be.true;
+    });
+
+    it('should react only on specified event in live validation mode', function () {
+      let nameInput = (form.elements.namedItem('name') as HTMLInputElement);
+
+      let validator = new FormValidator(form, {
+        revalidateOnChange: true,
+        revalidateOnInput: false
+      });
+      putValidValues();
+      validator.validate();
+      expect(form.classList.contains('form--valid')).to.be.true;
+
+      nameInput.value = 'x';
+      expect(form.classList.contains('form--valid')).to.be.true;
+
+      nameInput.dispatchEvent(new Event('input'));
+      expect(form.classList.contains('form--valid')).to.be.true;
+
+      nameInput.dispatchEvent(new Event('change'));
+      expect(form.classList.contains('form--valid')).to.be.false;
     });
   });
 
@@ -165,7 +190,9 @@ describe('FormValidator', function() {
     });
 
     it('should get error messages from html', function () {
-      let validator = new FormValidator(form);
+      let validator = new FormValidator(form, {
+        revalidateOnInput: true
+      });
       validator.validate();
       expect(name.getAttribute('title')).to.be.equal('SOMETHING_WRONG');
 
