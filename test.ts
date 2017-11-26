@@ -211,4 +211,85 @@ describe('FormValidator', function() {
       expect(email.getAttribute('title')).to.be.equal('localized error message');
     });
   });
+
+  describe("init_form", function () {
+    let form: HTMLFormElement;
+    let nameIb: HTMLElement;
+    let name: HTMLInputElement, email: HTMLInputElement;
+
+    beforeEach(function() {
+      document.body.innerHTML = `
+        <form id="form" class="js-validate">
+          <div class="form-contents" id="form-contents">
+            <label class="ib" id="name-ib">
+              <input name="name" minlength="3" id="name-input" required data-msg-error="SOMETHING_WRONG" data-msg-minlength="OOPS_ERROR">
+            </label>
+            <label class="ib">
+              <input type="email" name="email" id="email-input" required>          
+            </label>
+            <label class="ib">
+              <input type="text" name="pattern" pattern="[0-9]*">
+            </label>
+            <label class="ib">
+              <input type="number" name="number" min="10" max="20" required>
+            </label>
+          </div>
+        </form>
+      `;
+
+      form = document.getElementById('form') as HTMLFormElement;
+      nameIb = document.getElementById('name-ib') as HTMLElement;
+      name = document.getElementById('name-input') as HTMLInputElement;
+      email = document.getElementById('email-input') as HTMLInputElement;
+    });
+
+    it('should initialize forms with validation class', function () {
+      FormValidator.init();
+
+      expect(FormValidator.fromRoot(form)).to.not.be.null;
+    });
+  });
+
+  describe("step", function () {
+    let form: HTMLFormElement;
+    let numberInput: HTMLInputElement;
+    let validator: FormValidator;
+
+    beforeEach(function() {
+      document.body.innerHTML = `
+      <form id="form" method="post" action="http://example.com">
+        <label class="ib">
+          <input name="number" type="number" min="13" max="100" step="10" required>
+        </label>
+      </form>
+    `;
+
+      form = document.getElementById('form') as HTMLFormElement;
+      numberInput = form.elements.namedItem('number') as HTMLInputElement;
+      validator = new FormValidator(form, {
+        revalidateOnInput: true
+      });
+      validator.validate();
+    });
+
+    const setValue = (value: number) => {
+      numberInput.value = '' + value;
+      numberInput.dispatchEvent(new Event('input'));
+    };
+
+    it('should understand step attribute', function () {
+      console.log(validator.constraints);
+
+      expect(form.classList.contains('form--valid')).to.be.false;
+
+      setValue(13);
+      expect(form.classList.contains('form--valid')).to.be.true;
+
+      setValue(23);
+      expect(form.classList.contains('form--valid')).to.be.true;
+
+      setValue(15);
+      expect(form.classList.contains('form--valid')).to.be.false;
+    });
+  });
 });

@@ -37,6 +37,7 @@ export interface FormMessages {
   numberMinMax?: string;
   numberMin?: string;
   numberMax?: string;
+  step?: string;
 }
 
 const RussianFormMessages: FormMessages = {
@@ -47,7 +48,8 @@ const RussianFormMessages: FormMessages = {
   number: 'Введите число',
   numberMinMax: 'Введите число в диапазоне от $min до $max',
   numberMin: 'Введите число не меньше $min',
-  numberMax: 'Введите число не больше $max'
+  numberMax: 'Введите число не больше $max',
+  step: 'Число должно быть с шагом в $step'
 };
 
 const OPTION_DEFAULTS: FormValidatorOptions = {
@@ -62,8 +64,42 @@ const OPTION_DEFAULTS: FormValidatorOptions = {
   revalidateOnInput: false
 };
 
+let _customValidatorsCreated = false;
+function createCustomValidators(): void {
+  if (_customValidatorsCreated) {
+    return;
+  }
+
+  validate.validators.step = (value: any, options: any) => {
+    if (value == null) {
+      return;
+    }
+
+    let numValue = +value;
+    let isOptionsNumber = typeof options === 'number';
+
+    let step = isOptionsNumber ? options : (+options.step || 0);
+    if (step <= 0 || isNaN(step)) {
+      step = 1;
+    }
+    let minValue = isOptionsNumber ? 0 : (+options.min || 0);
+    if (isNaN(minValue)) {
+      minValue = 0;
+    }
+
+    let defMsg = `value has invalid step (should have step ${step})`;
+    let msg = isOptionsNumber ? defMsg : (options.message || defMsg);
+
+    if ((numValue - minValue) % step) {
+      return msg;
+    }
+  };
+}
+
 export class FormValidator {
   constructor(protected _root: HTMLFormElement, options?: FormValidatorOptions) {
+    createCustomValidators();
+
     this._options = assign({}, OPTION_DEFAULTS, options || {});
 
     if (this._root.tagName.toLowerCase() === 'form') {
@@ -198,6 +234,13 @@ export class FormValidator {
       return null;
     }
     return (root as any).__hidden_validator as FormValidator;
+  }
+
+  static init(rootClass: string = 'js-validate'): void {
+    let forms = document.querySelectorAll('.' + rootClass);
+    for (let q = 0; q < forms.length; ++q) {
+      new FormValidator(forms[q] as HTMLFormElement);
+    }
   }
 
   /** Protected area **/
@@ -387,7 +430,7 @@ export class FormValidator {
             case 'number': {
               constrain.numericality = { };
 
-              let min: number|null = null, max: number|null = null;
+              let min: number|null = null, max: number|null = null, step: number|null = null;
 
               if (elem.hasAttribute('min')) {
                 min = +(elem.getAttribute('min') as string);
@@ -397,6 +440,21 @@ export class FormValidator {
               if (elem.hasAttribute('max')) {
                 max = +(elem.getAttribute('max') as string);
                 constrain.numericality.lessThanOrEqualTo = max;
+              }
+
+              if (elem.hasAttribute('step')) {
+                step = +(elem.getAttribute('step') as string);
+                constrain.step = {
+                  step: step
+                };
+                if (min != null) {
+                  constrain.step.min = min;
+                }
+
+                let msg = this._getElementMsg(elem, 'step', 'number');
+                if (msg) {
+                  constrain.step.message = msg;
+                }
               }
 
               let defMsgClass: string;
