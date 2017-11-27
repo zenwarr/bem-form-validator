@@ -236,10 +236,10 @@ export class FormValidator {
     return (root as any).__hidden_validator as FormValidator;
   }
 
-  static init(rootClass: string = 'js-validate'): void {
+  static init(rootClass: string = 'js-validate', options?: FormValidatorOptions): void {
     let forms = document.querySelectorAll('.' + rootClass);
     for (let q = 0; q < forms.length; ++q) {
-      new FormValidator(forms[q] as HTMLFormElement);
+      new FormValidator(forms[q] as HTMLFormElement, options);
     }
   }
 
