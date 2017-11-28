@@ -303,4 +303,49 @@ describe('FormValidator', function() {
       expect(form.classList.contains('form--valid')).to.be.false;
     });
   });
+
+  describe("custom constraint builders", function () {
+    let form: HTMLFormElement;
+    let extended: HTMLInputElement;
+
+    document.body.innerHTML = `
+    <form id="form" method="post" action="http://example.com">
+      <label class="ib">
+        <input name="extended" id="extended" type="text" data-validate-extra="the_allowed_value" data-msg-extra="wrong">
+      </label>
+    </form>
+    `;
+
+    form = document.getElementById('form') as HTMLFormElement;
+    extended = document.getElementById('extended') as HTMLInputElement;
+
+    it("should not register validators with same name twice", function () {
+      FormValidator.addConstraintBuilder('some_name', () => {});
+      expect(() => FormValidator.addConstraintBuilder('some_name', () => {})).to.throw();
+    });
+
+    it("should validate with extra validator", function () {
+      FormValidator.addConstraintBuilder('extra', (constraint: any, input: HTMLInputElement, option: string, msg: string) => {
+        constraint.extra = {
+          value: option,
+          message: msg
+        };
+        return constraint;
+      }, (value, options, key, attributes) => {
+        return value !== options.value ? options.message || 'no error message' : null;
+      });
+
+      let validator = new FormValidator(form);
+      expect(validator.constraints).to.be.deep.equal({
+        extended: {
+          extra: {
+            value: 'the_allowed_value',
+            message: 'wrong'
+          }
+        }
+      });
+      expect(validator.validate()).to.be.false;
+      expect(extended.getAttribute('title')).to.be.equal('wrong');
+    });
+  });
 });

@@ -3,6 +3,8 @@ import lodash_assign = require('lodash.assign');
 
 export type ValidationConstraints =  { [name: string]: any };
 export type FormatParams = { [name: string]: any };
+export type ConstraintBuilder = (constraint: any, input: Element, option: string, msg: string|null) => any;
+export type CustomValidator = (value: string, options: any, key: string, attributes: string) => string|null|void;
 
 export interface InputData {
   elem: Element;
@@ -244,6 +246,21 @@ export class FormValidator {
     }
   }
 
+  static addConstraintBuilder(name: string, builder: ConstraintBuilder, validator?: CustomValidator): void {
+    if (this._constraintBuilders[name] != null) {
+      throw new Error(`Cannot register a custom constraint builder: name [${name}] is already in use`);
+    }
+
+    if (validator && validate.validators[name] != null) {
+      throw new Error(`Cannot register a custom validator: name [${name}] is already in use`);
+    }
+
+    this._constraintBuilders[name] = builder;
+    if (validator) {
+      validate.validators[name] = validator;
+    }
+  }
+
   /** Protected area **/
 
   /**
@@ -420,6 +437,8 @@ export class FormValidator {
 
   protected _buildConstraints() {
     let elems = this.root.querySelectorAll('[name]');
+    let builderKeys = Object.keys(FormValidator._constraintBuilders);
+    let builderAttrs = builderKeys.map(x => 'data-validate-' + x);
 
     this._constraints = { };
     this._elems = { };
@@ -433,16 +452,16 @@ export class FormValidator {
 
       this._elems[elem_name] = this._buildInputData(elem);
 
-      let constrain: { [name: string]: any } = { };
+      let constraint: { [name: string]: any } = { };
       if (elem.hasAttribute('required')) {
         let message = this._getElementMsg(elem, 'required');
-        constrain.presence = message ? { message } : true;
+        constraint.presence = message ? { message } : true;
       }
 
       if (elem.hasAttribute('minlength')) {
         let minlength = +(elem.getAttribute('minlength') as string);
         let message = this._getElementMsg(elem, 'minlength');
-        constrain.length = {
+        constraint.length = {
           minimum: minlength
         };
 
@@ -450,18 +469,18 @@ export class FormValidator {
           message = this._formatMsg(message, {
             minlength
           });
-          constrain.length.message = message;
+          constraint.length.message = message;
         }
       }
 
       if (elem.hasAttribute('pattern')) {
         let pattern = elem.getAttribute('pattern') as string;
-        constrain.format = { pattern };
+        constraint.format = { pattern };
 
         let message = this._getElementMsg(elem, 'pattern');
         if (message) {
           message = this._formatMsg(message, { pattern });
-          constrain.format.message = message;
+          constraint.format.message = message;
         }
       }
 
@@ -470,36 +489,36 @@ export class FormValidator {
           switch ((elem.getAttribute('type') || 'text').toLowerCase()) {
             case 'email': {
               let message = this._getElementMsg(elem, 'email');
-              constrain.email = message ? { message } : true;
+              constraint.email = message ? { message } : true;
             } break;
 
             case 'number': {
-              constrain.numericality = { };
+              constraint.numericality = { };
 
               let min: number|null = null, max: number|null = null, step: number|null = null;
 
               if (elem.hasAttribute('min')) {
                 min = +(elem.getAttribute('min') as string);
-                constrain.numericality.greaterThanOrEqualTo = min;
+                constraint.numericality.greaterThanOrEqualTo = min;
               }
 
               if (elem.hasAttribute('max')) {
                 max = +(elem.getAttribute('max') as string);
-                constrain.numericality.lessThanOrEqualTo = max;
+                constraint.numericality.lessThanOrEqualTo = max;
               }
 
               if (elem.hasAttribute('step')) {
                 step = +(elem.getAttribute('step') as string);
-                constrain.step = {
+                constraint.step = {
                   step: step
                 };
                 if (min != null) {
-                  constrain.step.min = min;
+                  constraint.step.min = min;
                 }
 
                 let msg = this._getElementMsg(elem, 'step', 'number');
                 if (msg) {
-                  constrain.step.message = msg;
+                  constraint.step.message = msg;
                 }
               }
 
@@ -521,7 +540,7 @@ export class FormValidator {
                   max,
                   step
                 });
-                constrain.numericality.message = message;
+                constraint.numericality.message = message;
               }
             } break;
           }
@@ -536,7 +555,14 @@ export class FormValidator {
           break;
       }
 
-      this._constraints[elem_name] = constrain;
+      for (let q = 0; q < builderKeys.length; ++q) {
+        if (elem.hasAttribute(builderAttrs[q])) {
+          let msg = this._getElementMsg(elem, builderKeys[q]);
+          constraint = FormValidator._constraintBuilders[builderKeys[q]](constraint, elem, '' + elem.getAttribute(builderAttrs[q]), msg);
+        }
+      }
+
+      this._constraints[elem_name] = constraint;
     }
   }
 
@@ -586,6 +612,7 @@ export class FormValidator {
   private _constraints: ValidationConstraints|null = null;
   private _elems: { [name: string]: InputData }|null = null;
   private _liveValidation: boolean = false;
+  private static _constraintBuilders: { [name: string]: ConstraintBuilder } = { };
 }
 
 /**
