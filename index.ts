@@ -2,6 +2,7 @@ import * as validate from "validate.js";
 import lodash_assign = require('lodash.assign');
 
 export type ValidationConstraints =  { [name: string]: any };
+export type FormatParams = { [name: string]: any };
 
 export interface InputData {
   elem: Element;
@@ -375,6 +376,48 @@ export class FormValidator {
     return null;
   }
 
+  protected _formatMsg(msg: string, params: FormatParams): string {
+    const SEP_CHARCODE = '$'.charCodeAt(0),
+        LOW_ALPHA_START = 'a'.charCodeAt(0),
+        HIGH_ALPHA_END = 'z'.charCodeAt(0),
+        LG_ALPHA_START = 'A'.charCodeAt(0),
+        LG_ALPHA_END = 'Z'.charCodeAt(0),
+        DIGIT_START = '0'.charCodeAt(0),
+        DIGIT_END = '9'.charCodeAt(0),
+        UNDERSCORE = '_'.charCodeAt(0);
+
+    let result: string[] = [];
+    let tail = 0, head = 0;
+
+    while (head < msg.length) {
+      if (msg.charCodeAt(head) === SEP_CHARCODE) {
+        // enter placeholder
+        result.push(msg.slice(tail, head));
+        tail = head;
+
+        ++head;
+        let ch = msg.charCodeAt(head);
+        while ((ch >= LOW_ALPHA_START && ch <= HIGH_ALPHA_END) || (ch >= LG_ALPHA_START && ch <= LG_ALPHA_END)
+                  || (ch >= DIGIT_START && ch <= DIGIT_END) || ch === UNDERSCORE) {
+          ch = msg.charCodeAt(++head);
+        }
+        let placeholder = msg.slice(tail + 1, head);
+        if (placeholder.length < 2) {
+          throw new Error('Invalid format string: error at ' + placeholder);
+        }
+        result.push('' + (params[placeholder] || ''));
+        --head;
+        tail = head + 1;
+      } else {
+        ++head;
+      }
+    }
+
+    result.push(msg.slice(tail));
+
+    return result.join('');
+  }
+
   protected _buildConstraints() {
     let elems = this.root.querySelectorAll('[name]');
 
@@ -404,17 +447,20 @@ export class FormValidator {
         };
 
         if (message) {
+          message = this._formatMsg(message, {
+            minlength
+          });
           constrain.length.message = message;
         }
       }
 
       if (elem.hasAttribute('pattern')) {
-        let message = this._getElementMsg(elem, 'pattern');
-        constrain.format = {
-          pattern: elem.getAttribute('pattern') as string
-        };
+        let pattern = elem.getAttribute('pattern') as string;
+        constrain.format = { pattern };
 
+        let message = this._getElementMsg(elem, 'pattern');
         if (message) {
+          message = this._formatMsg(message, { pattern });
           constrain.format.message = message;
         }
       }
@@ -470,6 +516,11 @@ export class FormValidator {
 
               let message = this._getElementMsg(elem, defMsgClass, 'number');
               if (message) {
+                message = this._formatMsg(message, {
+                  min,
+                  max,
+                  step
+                });
                 constrain.numericality.message = message;
               }
             } break;

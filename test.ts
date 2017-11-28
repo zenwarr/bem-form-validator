@@ -161,7 +161,7 @@ describe('FormValidator', function() {
   describe("loc_form", function () {
     let form: HTMLFormElement;
     let nameIb: HTMLElement;
-    let name: HTMLInputElement, email: HTMLInputElement;
+    let name: HTMLInputElement, email: HTMLInputElement, number: HTMLInputElement;
 
     beforeEach(function() {
       document.body.innerHTML = `
@@ -177,7 +177,8 @@ describe('FormValidator', function() {
               <input type="text" name="pattern" pattern="[0-9]*">
             </label>
             <label class="ib">
-              <input type="number" name="number" min="10" max="20" required>
+              <input type="number" name="number" id="number-input" min="10" max="20" required
+                            data-msg-number="not in range from $min to $max">
             </label>
           </div>
         </form>
@@ -187,6 +188,7 @@ describe('FormValidator', function() {
       nameIb = document.getElementById('name-ib') as HTMLElement;
       name = document.getElementById('name-input') as HTMLInputElement;
       email = document.getElementById('email-input') as HTMLInputElement;
+      number = document.getElementById('number-input') as HTMLInputElement;
     });
 
     it('should get error messages from html', function () {
@@ -209,6 +211,15 @@ describe('FormValidator', function() {
       });
       validator.validate();
       expect(email.getAttribute('title')).to.be.equal('localized error message');
+    });
+
+    it('should format messages', function () {
+      let validator = new FormValidator(form);
+      number.value = '5';
+
+      validator.validate();
+
+      expect(number.getAttribute('title')).to.be.equal('not in range from 10 to 20');
     });
   });
 
