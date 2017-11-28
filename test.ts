@@ -385,8 +385,7 @@ describe('FormValidator', function() {
             attribute: 'text2',
             message: 'not equal to text2 value!'
           }
-        },
-        text2: { }
+        }
       });
 
       text1.value = 'value1';
@@ -504,6 +503,23 @@ describe('FormValidator', function() {
       expect(camel('somename_')).to.be.equal('somename');
       expect(camel('_')).to.be.equal('');
       expect(camel('')).to.be.equal('');
+    });
+  });
+
+  describe("should not create constraints for non-validated fields", function () {
+    it("subj", function () {
+      document.body.innerHTML = `
+        <form id="form">
+          <input name="name" type="text" />
+        </form>
+      `;
+
+      let form = document.getElementById('form') as HTMLFormElement;
+      let validator = new FormValidator(form);
+
+      expect(validator.constraints).to.be.deep.equal({
+
+      });
     });
   });
 });

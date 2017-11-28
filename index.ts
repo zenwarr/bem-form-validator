@@ -717,7 +717,9 @@ export class FormValidator {
         }
       }
 
-      this._constraints[elem_name] = constraint;
+      if (Object.keys(constraint).length > 0) {
+        this._constraints[elem_name] = constraint;
+      }
     }
   }
 
