@@ -3,7 +3,7 @@ import lodash_assign = require('lodash.assign');
 
 export type ValidationConstraints =  { [name: string]: any };
 export type FormatParams = { [name: string]: any };
-export type ConstraintBuilder = (constraint: any, input: Element, option: string, msg: string|null) => any;
+export type ConstraintBuilder = (constraint: any, input: Element, option: string, msg: string|null, validator: FormValidator) => any;
 export type CustomValidator = (value: string, options: any, key: string, attributes: string) => string|null|void;
 
 export interface InputData {
@@ -41,6 +41,15 @@ export interface FormMessages {
   numberMin?: string;
   numberMax?: string;
   step?: string;
+  equality?: string;
+  exclude?: string;
+  include?: string;
+  integer?: string;
+  divisible?: string;
+  odd?: string;
+  even?: string;
+  lengthEqual?: string;
+  lengthMax?: string;
 }
 
 const RussianFormMessages: FormMessages = {
@@ -71,6 +80,8 @@ let _customValidatorsCreated = false;
 function createCustomValidators(): void {
   if (_customValidatorsCreated) {
     return;
+  } else {
+    _customValidatorsCreated = true;
   }
 
   validate.validators.step = (value: any, options: any) => {
@@ -97,6 +108,113 @@ function createCustomValidators(): void {
       return msg;
     }
   };
+
+  FormValidator.addConstraintBuilder('equality', (constraint, input, option, message, validator) => {
+    if (message) {
+      constraint.equality = {
+        attribute: option,
+        message: validator.formatMsg(message, {
+          other: option
+        })
+      }
+    } else {
+      constraint.equality = option;
+    }
+  });
+
+  FormValidator.addConstraintBuilder('exclude', (constraint, input, option, message, validator) => {
+    let data: any;
+    try {
+      data = JSON.parse(option);
+    } catch (err) {
+      data = [ option ];
+    }
+
+    constraint.exclusion = {
+      within: data
+    };
+    if (message) {
+      constraint.exclusion.message = message;
+    }
+  });
+
+  FormValidator.addConstraintBuilder('include', (constraint, input, option, message, validator) => {
+    let data: any;
+    try {
+      data = JSON.parse(option);
+    } catch (err) {
+      data = [ option ];
+    }
+
+    constraint.inclusion = {
+      within: data
+    };
+    if (message) {
+      constraint.inclusion.message = message;
+    }
+  });
+
+  function setConstraintProp(constraint: any, prop: string, options: any): void {
+    if (constraint[prop]) {
+      assign(constraint[prop], options);
+    } else {
+      constraint[prop] = options;
+    }
+  }
+
+  FormValidator.addConstraintBuilder('integer', (constraint, input, option, message) => {
+    setConstraintProp(constraint, 'numericality', {
+      onlyInteger: message ? { message } : true
+    });
+  });
+
+  FormValidator.addConstraintBuilder('divisible', (constraint, input, option, message) => {
+    let divisor = +option;
+    if (isNaN(divisor) || divisor === 0 ) {
+      console.error('invalid validation attribute divisble');
+      return;
+    }
+
+    setConstraintProp(constraint, 'numericality', {
+      divisibleBy: message ? { message, count: divisor } : divisor
+    });
+  });
+
+  FormValidator.addConstraintBuilder('odd', (constraint, input, option, message) => {
+    setConstraintProp(constraint, 'numericality', {
+      odd: message ? { message } : true
+    });
+  });
+
+  FormValidator.addConstraintBuilder('even', (constraint, input, option, message) => {
+    setConstraintProp(constraint, 'numericality', {
+      even: message ? { message } : true
+    });
+  });
+
+  FormValidator.addConstraintBuilder('length-equal', (constraint, input, option, message) => {
+    let length = +option;
+    if (isNaN(length)) {
+      console.error('invalid validation attribute length-equal');
+      return;
+    }
+
+    setConstraintProp(constraint, 'length', {
+      is: message ? { message, count: length } : length
+    });
+  });
+
+  FormValidator.addConstraintBuilder('length-max', (constraint, input, option, message) => {
+    let length = +option;
+    if (isNaN(length)) {
+      console.error('invalid validation attribute length-max');
+      return;
+    }
+
+    setConstraintProp(constraint, 'length', {
+      maximum: message ? { message, count: length } : length
+    });
+  });
 }
 
 export class FormValidator {
@@ -261,6 +379,48 @@ export class FormValidator {
     }
   }
 
+  formatMsg(msg: string, params: FormatParams): string {
+    const SEP_CHARCODE = '$'.charCodeAt(0),
+        LOW_ALPHA_START = 'a'.charCodeAt(0),
+        HIGH_ALPHA_END = 'z'.charCodeAt(0),
+        LG_ALPHA_START = 'A'.charCodeAt(0),
+        LG_ALPHA_END = 'Z'.charCodeAt(0),
+        DIGIT_START = '0'.charCodeAt(0),
+        DIGIT_END = '9'.charCodeAt(0),
+        UNDERSCORE = '_'.charCodeAt(0);
+
+    let result: string[] = [];
+    let tail = 0, head = 0;
+
+    while (head < msg.length) {
+      if (msg.charCodeAt(head) === SEP_CHARCODE) {
+        // enter placeholder
+        result.push(msg.slice(tail, head));
+        tail = head;
+
+        ++head;
+        let ch = msg.charCodeAt(head);
+        while ((ch >= LOW_ALPHA_START && ch <= HIGH_ALPHA_END) || (ch >= LG_ALPHA_START && ch <= LG_ALPHA_END)
+        || (ch >= DIGIT_START && ch <= DIGIT_END) || ch === UNDERSCORE) {
+          ch = msg.charCodeAt(++head);
+        }
+        let placeholder = msg.slice(tail + 1, head);
+        if (placeholder.length < 2) {
+          throw new Error('Invalid format string: error at ' + placeholder);
+        }
+        result.push('' + (params[placeholder] || ''));
+        --head;
+        tail = head + 1;
+      } else {
+        ++head;
+      }
+    }
+
+    result.push(msg.slice(tail));
+
+    return result.join('');
+  }
+
   /** Protected area **/
 
   /**
@@ -367,7 +527,10 @@ export class FormValidator {
 
   protected _getElementMsg(elem: Element, ...msgClasses: string[]): string|null {
     for (let q = 0; q < msgClasses.length; ++q) {
-      let attr = elem.getAttribute('data-msg-' + msgClasses[q]);
+      let msgClassUnderscored = 'data-msg-' + separated(msgClasses[q], '-'),
+          msgClassCamel = 'data-msg-' + camel(msgClasses[q]);
+
+      let attr = elem.getAttribute(msgClassUnderscored) || elem.getAttribute(msgClassCamel);
       if (attr) {
         return attr;
       }
@@ -384,55 +547,13 @@ export class FormValidator {
     }
 
     for (let q = 0; q < msgClasses.length; ++q) {
-      let def = this._options.messages[msgClasses[q]];
+      let def = this._options.messages[camel(msgClasses[q])];
       if (def) {
         return def;
       }
     }
 
     return null;
-  }
-
-  protected _formatMsg(msg: string, params: FormatParams): string {
-    const SEP_CHARCODE = '$'.charCodeAt(0),
-        LOW_ALPHA_START = 'a'.charCodeAt(0),
-        HIGH_ALPHA_END = 'z'.charCodeAt(0),
-        LG_ALPHA_START = 'A'.charCodeAt(0),
-        LG_ALPHA_END = 'Z'.charCodeAt(0),
-        DIGIT_START = '0'.charCodeAt(0),
-        DIGIT_END = '9'.charCodeAt(0),
-        UNDERSCORE = '_'.charCodeAt(0);
-
-    let result: string[] = [];
-    let tail = 0, head = 0;
-
-    while (head < msg.length) {
-      if (msg.charCodeAt(head) === SEP_CHARCODE) {
-        // enter placeholder
-        result.push(msg.slice(tail, head));
-        tail = head;
-
-        ++head;
-        let ch = msg.charCodeAt(head);
-        while ((ch >= LOW_ALPHA_START && ch <= HIGH_ALPHA_END) || (ch >= LG_ALPHA_START && ch <= LG_ALPHA_END)
-                  || (ch >= DIGIT_START && ch <= DIGIT_END) || ch === UNDERSCORE) {
-          ch = msg.charCodeAt(++head);
-        }
-        let placeholder = msg.slice(tail + 1, head);
-        if (placeholder.length < 2) {
-          throw new Error('Invalid format string: error at ' + placeholder);
-        }
-        result.push('' + (params[placeholder] || ''));
-        --head;
-        tail = head + 1;
-      } else {
-        ++head;
-      }
-    }
-
-    result.push(msg.slice(tail));
-
-    return result.join('');
   }
 
   protected _buildConstraints() {
@@ -466,7 +587,7 @@ export class FormValidator {
         };
 
         if (message) {
-          message = this._formatMsg(message, {
+          message = this.formatMsg(message, {
             minlength
           });
           constraint.length.message = message;
@@ -479,7 +600,7 @@ export class FormValidator {
 
         let message = this._getElementMsg(elem, 'pattern');
         if (message) {
-          message = this._formatMsg(message, { pattern });
+          message = this.formatMsg(message, { pattern });
           constraint.format.message = message;
         }
       }
@@ -535,7 +656,7 @@ export class FormValidator {
 
               let message = this._getElementMsg(elem, defMsgClass, 'number');
               if (message) {
-                message = this._formatMsg(message, {
+                message = this.formatMsg(message, {
                   min,
                   max,
                   step
@@ -558,7 +679,11 @@ export class FormValidator {
       for (let q = 0; q < builderKeys.length; ++q) {
         if (elem.hasAttribute(builderAttrs[q])) {
           let msg = this._getElementMsg(elem, builderKeys[q]);
-          constraint = FormValidator._constraintBuilders[builderKeys[q]](constraint, elem, '' + elem.getAttribute(builderAttrs[q]), msg);
+          let new_constraint = FormValidator._constraintBuilders[builderKeys[q]](constraint, elem,
+              '' + elem.getAttribute(builderAttrs[q]), msg, this);
+          if (new_constraint) {
+            constraint = new_constraint;
+          }
         }
       }
 
@@ -663,4 +788,32 @@ function makeElem(block: string, elem: string): string {
 
 function toggleClass(elem: Element, className: string, value: boolean): void {
   (value ? elem.classList.add : elem.classList.remove).call(elem.classList, className);
+}
+
+export function separated(name: string, sep: string = '_'): string {
+  const CH_LG_LOWER = 'A'.charCodeAt(0),
+      CH_LG_HIGH = 'Z'.charCodeAt(0);
+
+  let tail = 0, head = 0;
+  let result: string[] = [];
+  while (head < name.length) {
+    let ch = name.charCodeAt(head);
+    if (ch >= CH_LG_LOWER && ch <= CH_LG_HIGH && head !== 0) {
+      // split here
+      result.push(name.slice(tail, head).toLowerCase());
+      tail = head;
+    }
+    ++head;
+  }
+
+  if (head != tail) {
+    result.push(name.slice(tail, head).toLowerCase());
+  }
+
+  return result.join(sep);
+}
+
+export function camel(name: string): string {
+  let result = name.split(/[_\-]/).filter(x => x);
+  return result.map((x, i) => i > 0 ? (x.slice(0, 1).toUpperCase() + x.slice(1).toLowerCase()) : x).join('');
 }

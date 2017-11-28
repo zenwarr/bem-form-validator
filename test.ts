@@ -1,4 +1,4 @@
-import {FormValidator} from "./index";
+import {camel, FormValidator, separated} from "./index";
 import { expect } from 'chai';
 
 describe('FormValidator', function() {
@@ -289,8 +289,6 @@ describe('FormValidator', function() {
     };
 
     it('should understand step attribute', function () {
-      console.log(validator.constraints);
-
       expect(form.classList.contains('form--valid')).to.be.false;
 
       setValue(13);
@@ -346,6 +344,148 @@ describe('FormValidator', function() {
       });
       expect(validator.validate()).to.be.false;
       expect(extended.getAttribute('title')).to.be.equal('wrong');
+    });
+  });
+
+  describe("extra validators", function () {
+    it("equality validator", function () {
+      document.body.innerHTML = `
+        <form id="form">
+          <input type="text" id="text1" name="text1" data-validate-equality="text2" data-msg-equality="not equal to $other value!" />
+          <input type="text" id="text2" name="text2" />
+        </form>
+      `;
+
+      let form = document.getElementById('form') as HTMLFormElement;
+      let text1 = document.getElementById('text1') as HTMLInputElement;
+      let text2 = document.getElementById('text2') as HTMLInputElement;
+
+      let validator = new FormValidator(form);
+      expect(validator.constraints).to.be.deep.equal({
+        text1: {
+          equality: {
+            attribute: 'text2',
+            message: 'not equal to text2 value!'
+          }
+        },
+        text2: { }
+      });
+
+      text1.value = 'value1';
+      text2.value = 'value2';
+
+      expect(validator.validate()).to.be.false;
+
+      text2.value = 'value1';
+
+      expect(validator.validate()).to.be.true;
+    });
+
+    it("exclude validator", function () {
+      document.body.innerHTML = `
+        <form id="form">
+          <input type="number" id="input" name="input" data-validate-exclude="[1, 2, 3]" />
+        </form>
+      `;
+
+      let form = document.getElementById('form') as HTMLFormElement;
+      let input = document.getElementById('input') as HTMLInputElement;
+      let validator = new FormValidator(form);
+
+      input.value = '2';
+      expect(validator.validate()).to.be.false;
+
+      input.value = '4';
+      expect(validator.validate()).to.be.true;
+    });
+
+    it("extra number validators", function () {
+      document.body.innerHTML = `
+        <form id="form">
+          <input type="text" name="i1" data-validate-integer />
+          <input type="text" name="i2" data-validate-integer data-msg-integer="should be integer" />
+          <input type="text" name="i3" data-validate-divisible="5">
+          <input type="text" name="i4" data-validate-odd />
+          <input type="text" name="i5" data-validate-even />
+          <input type="number" name="i6" min="10" max="20" data-validate-divisible="3" data-msg-divisible="not divisible!" />
+          <input type="text" name="i7" data-validate-length-equal="5" data-validate-length-max="10" data-msg-length-equal="le" data-msg-lengthMax="lm" />
+        </form>
+      `;
+
+      let form = document.getElementById('form') as HTMLFormElement;
+      let validator = new FormValidator(form);
+
+      expect(validator.constraints).to.be.deep.equal({
+        i1: {
+          numericality: {
+            onlyInteger: true
+          }
+        },
+        i2: {
+          numericality: {
+            onlyInteger: {
+              message: 'should be integer'
+            }
+          }
+        },
+        i3: {
+          numericality: {
+            divisibleBy: 5
+          }
+        },
+        i4: {
+          numericality: {
+            odd: true
+          }
+        },
+        i5: {
+          numericality: {
+            even: true
+          }
+        },
+        i6: {
+          numericality: {
+            greaterThanOrEqualTo: 10,
+            lessThanOrEqualTo: 20,
+            divisibleBy: {
+              count: 3,
+              message: "not divisible!"
+            }
+          }
+        },
+        i7: {
+          length: {
+            is: {
+              count: 5,
+              message: 'le'
+            },
+            maximum: {
+              count: 10,
+              message: 'lm'
+            }
+          }
+        }
+      });
+    });
+  });
+
+  describe("text transform", function () {
+    it("separated", function () {
+      expect(separated('someName')).to.be.equal('some_name');
+      expect(separated('some_name')).to.be.equal('some_name');
+      expect(separated('SomeName')).to.be.equal('some_name');
+      expect(separated('B')).to.be.equal('b');
+      expect(separated('somenamE')).to.be.equal('somenam_e');
+      expect(separated('')).to.be.equal('');
+    });
+
+    it("camel", function () {
+      expect(camel('some_name')).to.be.equal('someName');
+      expect(camel('some-name')).to.be.equal('someName');
+      expect(camel('_somename')).to.be.equal('somename');
+      expect(camel('somename_')).to.be.equal('somename');
+      expect(camel('_')).to.be.equal('');
+      expect(camel('')).to.be.equal('');
     });
   });
 });
