@@ -1,6 +1,11 @@
 export declare type ValidationConstraints = {
     [name: string]: any;
 };
+export declare type FormatParams = {
+    [name: string]: any;
+};
+export declare type ConstraintBuilder = (constraint: any, input: Element, option: string, msg: string | null, validator: FormValidator) => any;
+export declare type CustomValidator = (value: string, options: any, key: string, attributes: string) => string | null | void;
 export interface InputData {
     elem: Element;
     ib: Element | null;
@@ -20,6 +25,8 @@ export interface FormValidatorOptions {
     inputBlockInvalidMod?: string;
     inputBlockErrorElem?: string;
     messages?: FormMessages;
+    revalidateOnChange?: boolean;
+    revalidateOnInput?: boolean;
 }
 export interface FormMessages {
     [name: string]: string | undefined;
@@ -31,6 +38,16 @@ export interface FormMessages {
     numberMinMax?: string;
     numberMin?: string;
     numberMax?: string;
+    step?: string;
+    equality?: string;
+    exclude?: string;
+    include?: string;
+    integer?: string;
+    divisible?: string;
+    odd?: string;
+    even?: string;
+    lengthEqual?: string;
+    lengthMax?: string;
 }
 export declare class FormValidator {
     protected _root: HTMLFormElement;
@@ -73,7 +90,11 @@ export declare class FormValidator {
     readonly inputBlockValidClass: string;
     readonly inputBlockInvalidClass: string;
     readonly options: FormValidatorOptions;
+    readonly liveValidation: boolean;
     static fromRoot(root: Element): FormValidator | null;
+    static init(rootClass?: string, options?: FormValidatorOptions): void;
+    static addConstraintBuilder(name: string, builder: ConstraintBuilder, validator?: CustomValidator): void;
+    formatMsg(msg: string, params: FormatParams): string;
     /** Protected area **/
     /**
      * Called to handle form submit event
@@ -100,4 +121,7 @@ export declare class FormValidator {
     private _constraints;
     private _elems;
     private _liveValidation;
+    private static _constraintBuilders;
 }
+export declare function separated(name: string, sep?: string): string;
+export declare function camel(name: string): string;
