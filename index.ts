@@ -501,7 +501,6 @@ export class FormValidator {
   protected _buildInputData(elem: Element): InputData {
     let ib = closest(elem, '.' + this._options.inputBlock);
     if (!ib) {
-      console.warn(`Failed to find [${this._options.inputBlock}] element enclosing the input `, elem);
       return {
         elem: elem,
         ib: null,
