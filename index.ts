@@ -612,6 +612,37 @@ export class FormValidator {
               constraint.email = message ? { message } : true;
             } break;
 
+            case 'url': {
+              let message = this._getElementMsg(elem, 'url');
+              constraint.url = message ? { message } : true;
+
+              if (elem.hasAttribute('data-validate-url-allow-local')) {
+                if (typeof constraint.url === 'object') {
+                  constraint.url.allowLocal = true;
+                } else {
+                  constraint.url = { allowLocal: true }
+                }
+              }
+
+              if (elem.hasAttribute('data-validate-url-schemes')) {
+                let schemes: any, schemesAttr: string = elem.getAttribute('data-validate-url-schemes') as string;
+                if (schemesAttr) {
+                  try {
+                    schemes = JSON.parse(schemesAttr);
+                  } catch (err) {
+                    schemes = [ schemesAttr ]
+                  }
+                  if (typeof constraint.url === 'object') {
+                    constraint.url.schemes = schemes;
+                  } else {
+                    constraint.url = {
+                      schemes
+                    }
+                  }
+                }
+              }
+            } break;
+
             case 'number': {
               constraint.numericality = { };
 

@@ -347,6 +347,24 @@ describe('FormValidator', function() {
     });
   });
 
+  describe("url", function () {
+    it("url", function () {
+      document.body.innerHTML = `
+        <form id="form">
+          <input type="url" name="input_name" />        
+        </form>
+      `;
+
+      let form = document.getElementById('form') as HTMLFormElement;
+      let validator = new FormValidator(form);
+      expect(validator.constraints).to.be.deep.equal({
+        input_name: {
+          url: true
+        }
+      });
+    });
+  });
+
   describe("extra validators", function () {
     it("equality validator", function () {
       document.body.innerHTML = `
