@@ -570,6 +570,10 @@ export class FormValidator {
         continue;
       }
 
+      if (elem.hasAttribute('data-ignored') || elem.hasAttribute('formnovalidate')) {
+        continue;
+      }
+
       this._elems[elem_name] = this._buildInputData(elem);
 
       let constraint: { [name: string]: any } = { };

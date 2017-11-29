@@ -522,4 +522,30 @@ describe('FormValidator', function() {
       });
     });
   });
+
+  describe("should ignore marked inputs", function () {
+    let form: HTMLFormElement;
+    let validator: FormValidator;
+
+    beforeEach(function() {
+      document.body.innerHTML = `
+        <form id="form">
+          <input name="name1" type="text" required data-ignored="true" />
+          <input type="text" name="name2" required data-ignored="true" />
+        </form>
+      `;
+
+      form = document.getElementById('form') as HTMLFormElement;
+      validator = new FormValidator(form);
+    });
+
+    it("validate", function () {
+      expect(validator.validate()).to.be.true;
+    });
+
+    it("validateSingle", function () {
+      expect(validator.validateSingle('name1')).to.be.true;
+      expect(validator.validateSingle('name2')).to.be.true;
+    });
+  });
 });
