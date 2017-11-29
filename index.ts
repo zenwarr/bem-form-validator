@@ -297,9 +297,7 @@ export class FormValidator {
    * @returns {boolean} True if the element is valid, false otherwise
    */
   validateSingle(elemName: string, silent: boolean = false): boolean {
-    if (!this._constraints || !this._elems) {
-      this._buildConstraints();
-    }
+    this._ensureConstraintsAreBuilt();
 
     let elemData = this._elems ? this._elems[elemName] : null;
     if (!elemData) {
@@ -329,9 +327,7 @@ export class FormValidator {
    * @returns {ValidationConstraints} List of constraints collected from HTML5 validation attributes
    */
   get constraints(): ValidationConstraints {
-    if (!this._constraints || this._autoInvalidateConstraints) {
-      this._buildConstraints();
-    }
+    this._ensureConstraintsAreBuilt();
     return this._constraints as ValidationConstraints;
   }
 
@@ -469,6 +465,13 @@ export class FormValidator {
     return this.validate();
   }
 
+  protected _ensureConstraintsAreBuilt(): void {
+    if (!this._constraints || this._autoInvalidateConstraints) {
+      this._rebuildElems();
+      this._buildConstraints();
+    }
+  }
+
   /**
    * Called to show errors on corresponding elements.
    * @param errors Error object as retrieved from validate.js.
@@ -535,15 +538,13 @@ export class FormValidator {
     return false;
   }
 
-  protected _buildInputData(elem: Element): InputData {
+  protected _updateInputData(data: InputData, elem: Element): void {
     let ib = closest(elem, '.' + this._options.inputBlock);
     if (!ib) {
-      return {
-        elem: elem,
-        ib: null,
-        errorElement: null,
-        valid: null
-      };
+      data.elem = elem;
+      data.ib = null;
+      data.errorElement = null;
+      return;
     }
 
     let errContainerClass = makeElem('' + this._options.inputBlock, '' + this._options.inputBlockErrorElem);
@@ -553,12 +554,15 @@ export class FormValidator {
       ib.appendChild(errorElement);
     }
 
-    return {
-      elem,
-      ib,
-      errorElement,
-      valid: null
-    };
+    data.elem = elem;
+    data.ib = ib;
+    data.errorElement = errorElement;
+  }
+
+  protected _buildInputData(elem: Element): InputData {
+    let result: InputData = { valid: null } as InputData;
+    this._updateInputData(result, elem);
+    return result;
   }
 
   protected _getElementMsg(elem: Element, ...msgClasses: string[]): string|null {
@@ -592,26 +596,56 @@ export class FormValidator {
     return null;
   }
 
-  protected _buildConstraints() {
-    let elems = this.root.querySelectorAll('[name]');
-    let builderKeys = Object.keys(FormValidator._constraintBuilders);
-    let builderAttrs = builderKeys.map(x => 'data-validate-' + x);
+  protected _rebuildElems(): void {
+    if (!this._elems) {
+      this._elems = { };
+    }
 
-    this._constraints = { };
-    this._elems = { };
+    let elems = this.root.querySelectorAll('[name]');
+    let notUpdated = Object.keys(this._elems);
     for (let q = 0; q < elems.length; ++q) {
-      let elem = elems[q];
-      let elem_name = elem.getAttribute('name');
-      if (!elem_name) {
+      let elem = elems[q],
+          elemName = elem.getAttribute('name') || '';
+
+      if (!elemName) {
         console.warn(`No name for element`, elem);
         continue;
       }
 
+      if (this._elems[elemName]) {
+        this._updateInputData(this._elems[elemName], elem);
+        notUpdated.splice(notUpdated.indexOf(elemName), 1);
+      } else {
+        this._elems[elemName] = this._buildInputData(elem);
+      }
+    }
+
+    // remove entries that no more exist
+    for (let q = 0; q < notUpdated.length; ++q) {
+      delete this._elems[notUpdated[q]];
+    }
+  }
+
+  protected _buildConstraints(): void {
+    this._rebuildElems();
+    if (!this._elems) {
+      return;
+    }
+
+    let builderKeys = Object.keys(FormValidator._constraintBuilders);
+    let builderAttrs = builderKeys.map(x => 'data-validate-' + x);
+
+    this._constraints = { };
+
+    let elemNames = Object.keys(this._elems);
+    for (let q = 0; q < elemNames.length; ++q) {
+      let elemName = elemNames[q],
+          elemData = this._elems[elemName],
+          elem = elemData.elem;
+
       if (elem.hasAttribute('data-ignored') || elem.hasAttribute('formnovalidate')) {
         continue;
       }
-
-      this._elems[elem_name] = this._buildInputData(elem);
 
       let constraint: { [name: string]: any } = { };
       if (elem.hasAttribute('required')) {
@@ -759,7 +793,7 @@ export class FormValidator {
       }
 
       if (Object.keys(constraint).length > 0) {
-        this._constraints[elem_name] = constraint;
+        this._constraints[elemName] = constraint;
       }
     }
   }

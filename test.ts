@@ -549,7 +549,7 @@ describe('FormValidator', function() {
     });
   });
 
-  describe("validating dynamically added inputs", function () {
+  describe("validating dynamically changing forms", function () {
     let form: HTMLFormElement;
     let inputCount = 1;
     
@@ -567,12 +567,15 @@ describe('FormValidator', function() {
       form.innerHTML = form.innerHTML + `<input type="text" name="name${++inputCount}" required />`
     }
 
-    it("should validate added inputs", function () {
+    it("should validate changing inputs", function () {
       let validator = new FormValidator(form);
       expect(validator.validate()).to.be.true;
 
       addInput();
       expect(validator.validate()).to.be.false;
+
+      form.innerHTML = '';
+      expect(validator.validate()).to.be.true;
     });
   });
 });
