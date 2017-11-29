@@ -531,7 +531,7 @@ describe('FormValidator', function() {
       document.body.innerHTML = `
         <form id="form">
           <input name="name1" type="text" required data-ignored="true" />
-          <input type="text" name="name2" required data-ignored="true" />
+          <input type="text" name="name2" required formnovalidate />
         </form>
       `;
 
@@ -546,6 +546,33 @@ describe('FormValidator', function() {
     it("validateSingle", function () {
       expect(validator.validateSingle('name1')).to.be.true;
       expect(validator.validateSingle('name2')).to.be.true;
+    });
+  });
+
+  describe("validating dynamically added inputs", function () {
+    let form: HTMLFormElement;
+    let inputCount = 1;
+    
+    beforeEach(function() {
+      document.body.innerHTML = `
+        <form id="form">
+          <input type="text" name="name1" />
+        </form>
+      `;
+      
+      form = document.getElementById('form') as HTMLFormElement;
+    });
+
+    function addInput() {
+      form.innerHTML = form.innerHTML + `<input type="text" name="name${++inputCount}" required />`
+    }
+
+    it("should validate added inputs", function () {
+      let validator = new FormValidator(form);
+      expect(validator.validate()).to.be.true;
+
+      addInput();
+      expect(validator.validate()).to.be.false;
     });
   });
 });

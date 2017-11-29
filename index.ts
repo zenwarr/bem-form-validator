@@ -217,6 +217,8 @@ function createCustomValidators(): void {
   });
 }
 
+const ATTRS_TO_INVALIDATE_CONSTRAINTS = [ 'type', 'required', 'min', 'max', 'step', 'pattern', 'minlength', 'formnovalidate' ];
+
 export class FormValidator {
   constructor(protected _root: HTMLFormElement, options?: FormValidatorOptions) {
     createCustomValidators();
@@ -232,6 +234,41 @@ export class FormValidator {
 
     if (this._options.rootBlock) {
       this._root.classList.add(this._options.rootBlock);
+    }
+
+    // react on changes in DOM that can trigger changes in constraints
+    if ((window as any).MutationObserver) {
+      let observer = new MutationObserver(mutations => {
+        for (let q = 0; q < mutations.length; ++q) {
+          let mut = mutations[q];
+
+          if (mut.type !== 'attributes') {
+            this._constraints = null;
+            return;
+          }
+          let attr = mut.attributeName;
+          if (!attr) {
+            continue;
+          }
+          attr = attr.toLowerCase();
+          if (attr.indexOf('data-') === 0) {
+            this._constraints = null;
+            return;
+          } else if (ATTRS_TO_INVALIDATE_CONSTRAINTS.indexOf(attr) >= 0) {
+            this._constraints = null;
+            return;
+          }
+        }
+      });
+
+      observer.observe(this._root, {
+        childList: true,
+        attributes: true,
+        subtree: true
+      });
+    } else {
+      // no MutationObserver support
+      this._autoInvalidateConstraints = true;
     }
   }
 
@@ -292,7 +329,7 @@ export class FormValidator {
    * @returns {ValidationConstraints} List of constraints collected from HTML5 validation attributes
    */
   get constraints(): ValidationConstraints {
-    if (!this._constraints) {
+    if (!this._constraints || this._autoInvalidateConstraints) {
       this._buildConstraints();
     }
     return this._constraints as ValidationConstraints;
@@ -773,6 +810,7 @@ export class FormValidator {
   private _constraints: ValidationConstraints|null = null;
   private _elems: { [name: string]: InputData }|null = null;
   private _liveValidation: boolean = false;
+  private _autoInvalidateConstraints: boolean = false;
   private static _constraintBuilders: { [name: string]: ConstraintBuilder } = { };
 }
 
