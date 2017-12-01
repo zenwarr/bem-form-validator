@@ -1,14 +1,14 @@
 This is a helper library for validating forms in a browser with help of validate.js.
 Of course, you can validate forms just with validate.js, but you do not need to write much JS code to do similar things with this library.
 All you need is to add regular HTML5 validation attributes (like 'required', 'min', 'max') and give correct 'type' attribute to your 'input' elements.
-Everything else is done by bem-form-validator.
+Everything else is done by this library.
 
 ## Installing:
 
 Run:
 
 ```javascript
-npm i --save bem-form-validator
+npm i --save zw-form-validator
 ```
 
 If you love TypeScript, you can use it out-of-box, type definition files are already included in the package.
@@ -18,7 +18,7 @@ If you love TypeScript, you can use it out-of-box, type definition files are alr
 First, you need to import the library into your module.
 
 ```javascript
-const v = require('bem-form-validator');
+const v = require('zw-form-validator');
 ```
 
 In all examples below, it is assumed that you have imported the module into constant named `v`.
