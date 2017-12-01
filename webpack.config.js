@@ -1,5 +1,6 @@
 const webpack = require('webpack');
 const path = require('path');
+const UglifyPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = [
   {
@@ -26,6 +27,10 @@ module.exports = [
           loader: 'ts-loader'
         }
       ]
-    }
+    },
+
+    plugins: [
+        new UglifyPlugin()
+    ]
   }
 ];
