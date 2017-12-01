@@ -38,15 +38,7 @@ describe('FormValidator', function() {
       let validator = new FormValidator(form);
       expect(validator.root).to.be.equal(form);
       expect(form.getAttribute('novalidate')).to.be.equal('');
-      expect(form.classList.contains('form')).to.be.true;
       expect(FormValidator.fromRoot(form)).to.be.equal(validator);
-    });
-
-    it('should calculate classes', function () {
-      let validator = new FormValidator(form);
-      expect(validator.rootBlock).to.be.equal('form');
-      expect(validator.rootValidClass).to.be.equal('form--valid');
-      expect(validator.rootInvalidClass).to.be.equal('form--invalid');
     });
 
     it('should not set novalidate attribute on non-form root', function () {
@@ -85,9 +77,7 @@ describe('FormValidator', function() {
     });
 
     it('should set validation classes on an invalid form', function () {
-      let validator = new FormValidator(form, {
-        rootBlock: 'form'
-      });
+      let validator = new FormValidator(form);
       validator.validate();
       expect(form.classList.contains('form--valid')).to.be.false;
       expect(form.classList.contains('form--invalid')).to.be.true;

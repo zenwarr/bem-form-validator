@@ -17,37 +17,33 @@ export interface InputData {
  */
 export interface FormValidatorOptions {
     /**
-     * BEM block name for a root element.
+     * Class to be applied when root is valid (e.g. all elements inside the root are validated and valid)
      */
-    rootBlock?: string;
+    rootValidClass?: string;
     /**
-     * BEM modifier to be applied when root is valid (e.g. all elements inside the root are validated and valid)
+     * Class to be applied when root is invalid (e.g. at least one element inside the root is validated and valid)
      */
-    rootValidMod?: string;
+    rootInvalidClass?: string;
     /**
-     * BEM modifier to be applied when root is invalid (e.g. at least one element inside the root is validated and valid)
-     */
-    rootInvalidMod?: string;
-    /**
-     * BEM block name for an input block.
+     * Class name for an input block.
      * Input block as an optional element that wraps a single input.
      * If input block element exists, it can contain a special 'errorElement' which holds an error message associated with wrapped input.
      * If no errorElement exists, it is automatically created.
      */
-    inputBlock?: string;
+    inputBlockClass?: string;
     /**
-     * BEM modifier to be applied to a valid input block (e.g. when wrapped element is validated and is valid)
+     * Class to be applied to a valid input block (e.g. when wrapped element is validated and is valid)
      */
-    inputBlockValidMod?: string;
+    inputBlockValidClass?: string;
     /**
-     * BEM modifier to be applied to an invalid input block (e.g. when wrapped element is validated and is invalid)
+     * Class to be applied to an invalid input block (e.g. when wrapped element is validated and is invalid)
      */
-    inputBlockInvalidMod?: string;
+    inputBlockInvalidClass?: string;
     /**
      * Class name for an error element inside input block.
      * If there are no element with given class inside an input block, a new node is created and attached to DOM.
      */
-    inputBlockErrorElem?: string;
+    errorElementClass?: string;
     /**
      * A class to be applied to validated and valid element itself.
      */
@@ -121,22 +117,6 @@ export declare class FormValidator {
      * @returns {Element} Form element assotiated with the object
      */
     readonly root: Element;
-    /**
-     * @returns {string} Block name for a root element
-     */
-    readonly rootBlock: string;
-    /**
-     * @returns {string} A class name applied to the root block if all its children are valid
-     */
-    readonly rootValidClass: string;
-    /**
-     * @returns {string} A class name applied to the root element if at least one of its children is invalid
-     */
-    readonly rootInvalidClass: string;
-    readonly inputBlock: string;
-    readonly inputBlockErrorElement: string;
-    readonly inputBlockValidClass: string;
-    readonly inputBlockInvalidClass: string;
     readonly options: FormValidatorOptions;
     /**
      * @returns {boolean} True if the validator is currently in live mode, false otherwise

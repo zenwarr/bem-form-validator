@@ -18,43 +18,38 @@ export interface InputData {
  */
 export interface FormValidatorOptions {
   /**
-   * BEM block name for a root element.
+   * Class to be applied when root is valid (e.g. all elements inside the root are validated and valid)
    */
-  rootBlock?: string;
+  rootValidClass?: string;
 
   /**
-   * BEM modifier to be applied when root is valid (e.g. all elements inside the root are validated and valid)
+   * Class to be applied when root is invalid (e.g. at least one element inside the root is validated and valid)
    */
-  rootValidMod?: string;
+  rootInvalidClass?: string;
 
   /**
-   * BEM modifier to be applied when root is invalid (e.g. at least one element inside the root is validated and valid)
-   */
-  rootInvalidMod?: string;
-
-  /**
-   * BEM block name for an input block.
+   * Class name for an input block.
    * Input block as an optional element that wraps a single input.
    * If input block element exists, it can contain a special 'errorElement' which holds an error message associated with wrapped input.
    * If no errorElement exists, it is automatically created.
    */
-  inputBlock?: string;
+  inputBlockClass?: string;
 
   /**
-   * BEM modifier to be applied to a valid input block (e.g. when wrapped element is validated and is valid)
+   * Class to be applied to a valid input block (e.g. when wrapped element is validated and is valid)
    */
-  inputBlockValidMod?: string;
+  inputBlockValidClass?: string;
 
   /**
-   * BEM modifier to be applied to an invalid input block (e.g. when wrapped element is validated and is invalid)
+   * Class to be applied to an invalid input block (e.g. when wrapped element is validated and is invalid)
    */
-  inputBlockInvalidMod?: string;
+  inputBlockInvalidClass?: string;
 
   /**
    * Class name for an error element inside input block.
    * If there are no element with given class inside an input block, a new node is created and attached to DOM.
    */
-  inputBlockErrorElem?: string;
+  errorElementClass?: string;
 
   /**
    * A class to be applied to validated and valid element itself.
@@ -117,13 +112,12 @@ const RussianFormMessages: FormMessages = {
 };
 
 const OPTION_DEFAULTS: FormValidatorOptions = {
-  rootBlock: 'form',
-  rootValidMod: 'valid',
-  rootInvalidMod: 'invalid',
-  inputBlock: 'ib',
-  inputBlockValidMod: 'valid',
-  inputBlockInvalidMod: 'invalid',
-  inputBlockErrorElem: 'error',
+  rootValidClass: 'form--valid',
+  rootInvalidClass: 'form--invalid',
+  inputBlockClass: 'ib',
+  inputBlockValidClass: 'ib--valid',
+  inputBlockInvalidClass: 'ib--invalid',
+  errorElementClass: 'ib__error',
   inputValidClass: 'input--valid',
   inputInvalidClass: 'input--invalid',
   revalidateOnChange: false,
@@ -293,10 +287,6 @@ export class FormValidator {
 
     this._root.__hidden_validator = this;
 
-    if (this._options.rootBlock) {
-      this._root.classList.add(this._options.rootBlock);
-    }
-
     // react on changes in DOM that can trigger changes in constraints
     if ((window as any).MutationObserver) {
       let observer = new MutationObserver(mutations => {
@@ -397,43 +387,6 @@ export class FormValidator {
    */
   get root(): Element {
     return this._root;
-  }
-
-  /**
-   * @returns {string} Block name for a root element
-   */
-  get rootBlock(): string {
-    return this._options.rootBlock || (OPTION_DEFAULTS.rootBlock as string);
-  }
-
-  /**
-   * @returns {string} A class name applied to the root block if all its children are valid
-   */
-  get rootValidClass(): string {
-    return makeMod(this.rootBlock, this._options.rootValidMod);
-  }
-
-  /**
-   * @returns {string} A class name applied to the root element if at least one of its children is invalid
-   */
-  get rootInvalidClass(): string {
-    return makeMod(this.rootBlock, this._options.rootInvalidMod);
-  }
-
-  get inputBlock(): string {
-    return '' + this._options.inputBlock;
-  }
-
-  get inputBlockErrorElement(): string {
-    return makeElem(this.inputBlock, '' + this._options.inputBlockErrorElem);
-  }
-
-  get inputBlockValidClass(): string {
-    return makeMod(this.inputBlock, '' + this._options.inputBlockValidMod);
-  }
-
-  get inputBlockInvalidClass(): string {
-    return makeMod(this.inputBlock, '' + this._options.inputBlockInvalidMod);
   }
 
   get options(): FormValidatorOptions {
@@ -603,8 +556,12 @@ export class FormValidator {
 
     // set classes
     if (elem.ib) {
-      elem.ib.classList.remove(this.inputBlockValidClass);
-      elem.ib.classList.add(this.inputBlockInvalidClass);
+      if (this.options.inputBlockValidClass) {
+        elem.ib.classList.remove(this.options.inputBlockValidClass);
+      }
+      if (this.options.inputBlockInvalidClass) {
+        elem.ib.classList.add(this.options.inputBlockInvalidClass);
+      }
     }
 
     if (this.options.inputInvalidClass) {
@@ -633,8 +590,12 @@ export class FormValidator {
 
     // clear error classes
     if (elem.ib) {
-      elem.ib.classList.add(this.inputBlockValidClass);
-      elem.ib.classList.remove(this.inputBlockInvalidClass);
+      if (this.options.inputBlockValidClass) {
+        elem.ib.classList.add(this.options.inputBlockValidClass);
+      }
+      if (this.options.inputBlockInvalidClass) {
+        elem.ib.classList.remove(this.options.inputBlockInvalidClass);
+      }
     }
 
     if (this.options.inputInvalidClass) {
@@ -668,7 +629,7 @@ export class FormValidator {
    * @private
    */
   protected _updateInputData(data: InputData, elem: Element): void {
-    let ib = closest(elem, '.' + this._options.inputBlock);
+    let ib = this._options.inputBlockClass ? closest(elem, '.' + this._options.inputBlockClass) : null;
     if (!ib) {
       data.elem = elem;
       data.ib = null;
@@ -676,11 +637,13 @@ export class FormValidator {
       return;
     }
 
-    let errContainerClass = makeElem('' + this._options.inputBlock, '' + this._options.inputBlockErrorElem);
-    let errorElement = ib.querySelector('.' + errContainerClass);
-    if (!errorElement) {
-      errorElement = document.createElement('div');
-      ib.appendChild(errorElement);
+    let errorElement: Element|null = null;
+    if (this._options.errorElementClass) {
+      errorElement = ib.querySelector('.' + this._options.errorElementClass);
+      if (!errorElement) {
+        errorElement = document.createElement('div');
+        ib.appendChild(errorElement);
+      }
     }
 
     data.elem = elem;
@@ -996,8 +959,12 @@ export class FormValidator {
    * @param {boolean} hasErrors
    */
   protected setRootHasErrors(hasErrors: boolean) {
-    toggleClass(this._root, this.rootValidClass, !hasErrors);
-    toggleClass(this._root, this.rootInvalidClass, hasErrors);
+    if (this._options.rootValidClass) {
+      toggleClass(this._root, this._options.rootValidClass, !hasErrors);
+    }
+    if (this._options.rootInvalidClass) {
+      toggleClass(this._root, this._options.rootInvalidClass, hasErrors);
+    }
   }
 
   /**
@@ -1055,14 +1022,6 @@ function assign<T>(...objs: T[]): T {
   } else {
     return lodash_assign.apply(this, objs);
   }
-}
-
-function makeMod(block: string, modifier?: string|null): string {
-  return modifier ? block + '--' + modifier : block;
-}
-
-function makeElem(block: string, elem: string): string {
-  return block + '__' + elem;
 }
 
 function toggleClass(elem: Element, className: string, value: boolean): void {
