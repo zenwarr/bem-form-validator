@@ -160,7 +160,7 @@ You can change default messages that validator adds to the elements by passing i
 ```javascript
 FormValidator.init('js-validate', {
     messages: {
-        required: 'You should not skip this input!",
+        required: 'You should not skip this input!',
         email: 'Input email here!'
     }
 });
