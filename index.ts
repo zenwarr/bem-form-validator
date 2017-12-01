@@ -1,5 +1,6 @@
 import * as validate from "validate.js";
 import lodash_assign = require('lodash.assign');
+import closest from "zw-closest";
 
 export type ValidationConstraints =  { [name: string]: any };
 export type FormatParams = { [name: string]: any };
@@ -981,36 +982,6 @@ export class FormValidator {
   private _liveValidation: boolean = false;
   private _autoInvalidateConstraints: boolean = false;
   private static _constraintBuilders: { [name: string]: ConstraintBuilder } = { };
-}
-
-/**
- * Element.matches method polyfill.
- * We should not touch prototype of Element to avoid messing with another libs
- */
-let matchesFunc: ((selector: string) => boolean)|null = null;
-function matches(elem: Element, selector: string): boolean {
-  if (!matchesFunc) {
-    matchesFunc = Element.prototype.matches || Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
-  }
-  return matchesFunc.call(elem, selector);
-}
-
-/**
- * Element.closest method polyfill
- */
-function closest(elem: Element, selector: string): Element|null {
-  if (elem.closest) {
-    return elem.closest(selector);
-  } else {
-    let el: Element|null = elem;
-    while (el != null) {
-      if (matches(el, selector)) {
-        return el;
-      }
-      el = el.parentElement;
-    }
-    return el;
-  }
 }
 
 function assign<T>(...objs: T[]): T {
