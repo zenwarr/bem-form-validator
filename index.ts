@@ -25,6 +25,8 @@ export interface FormValidatorOptions {
   inputBlockValidMod?: string;
   inputBlockInvalidMod?: string;
   inputBlockErrorElem?: string;
+  inputValidClass?: string;
+  inputInvalidClass?: string;
   messages?: FormMessages;
   revalidateOnChange?: boolean;
   revalidateOnInput?: boolean;
@@ -72,8 +74,10 @@ const OPTION_DEFAULTS: FormValidatorOptions = {
   inputBlockValidMod: 'valid',
   inputBlockInvalidMod: 'invalid',
   inputBlockErrorElem: 'error',
+  inputValidClass: 'input--valid',
+  inputInvalidClass: 'input--invalid',
   revalidateOnChange: false,
-  revalidateOnInput: false
+  revalidateOnInput: false,
 };
 
 let _customValidatorsCreated = false;
@@ -507,6 +511,13 @@ export class FormValidator {
       elem.ib.classList.add(this.inputBlockInvalidClass);
     }
 
+    if (this.options.inputInvalidClass) {
+      elem.elem.classList.add(this.options.inputInvalidClass);
+    }
+    if (this.options.inputValidClass) {
+      elem.elem.classList.remove(this.options.inputValidClass);
+    }
+
     elem.valid = false;
 
     this.setRootHasErrors(true);
@@ -524,6 +535,13 @@ export class FormValidator {
     if (elem.ib) {
       elem.ib.classList.add(this.inputBlockValidClass);
       elem.ib.classList.remove(this.inputBlockInvalidClass);
+    }
+
+    if (this.options.inputInvalidClass) {
+      elem.elem.classList.remove(this.options.inputInvalidClass);
+    }
+    if (this.options.inputValidClass) {
+      elem.elem.classList.add(this.options.inputValidClass);
     }
 
     elem.valid = true;

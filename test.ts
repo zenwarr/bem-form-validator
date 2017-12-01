@@ -91,6 +91,9 @@ describe('FormValidator', function() {
       validator.validate();
       expect(form.classList.contains('form--valid')).to.be.false;
       expect(form.classList.contains('form--invalid')).to.be.true;
+
+      expect((form.elements.namedItem('name') as Element).classList.contains('input--invalid')).to.be.true;
+      expect((form.elements.namedItem('name') as Element).classList.contains('input--valid')).to.be.false;
     });
 
     it('should set validation classes on a valid form', function () {

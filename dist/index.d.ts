@@ -24,6 +24,8 @@ export interface FormValidatorOptions {
     inputBlockValidMod?: string;
     inputBlockInvalidMod?: string;
     inputBlockErrorElem?: string;
+    inputValidClass?: string;
+    inputInvalidClass?: string;
     messages?: FormMessages;
     revalidateOnChange?: boolean;
     revalidateOnInput?: boolean;
@@ -102,6 +104,7 @@ export declare class FormValidator {
      * @returns {boolean} Return true if form should be submitted, false otherwise
      */
     protected onSubmit(e: Event): boolean;
+    protected _ensureConstraintsAreBuilt(): void;
     /**
      * Called to show errors on corresponding elements.
      * @param errors Error object as retrieved from validate.js.
@@ -110,8 +113,10 @@ export declare class FormValidator {
     protected setError(msg: string, elem: InputData): void;
     protected clearError(elem: InputData): void;
     protected _hasInvalidElems(): boolean;
+    protected _updateInputData(data: InputData, elem: Element): void;
     protected _buildInputData(elem: Element): InputData;
     protected _getElementMsg(elem: Element, ...msgClasses: string[]): string | null;
+    protected _rebuildElems(): void;
     protected _buildConstraints(): void;
     protected _beginLiveValidation(): void;
     protected onElementChange(elemName: string, e: Event): void;
@@ -121,6 +126,7 @@ export declare class FormValidator {
     private _constraints;
     private _elems;
     private _liveValidation;
+    private _autoInvalidateConstraints;
     private static _constraintBuilders;
 }
 export declare function separated(name: string, sep?: string): string;
