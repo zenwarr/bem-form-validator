@@ -15,20 +15,70 @@ export interface InputData {
 
 /**
  * All classes follow BEM convention.
- * The root element (in most cases, this is the <form> element) is a container for all element to be validated.
  */
 export interface FormValidatorOptions {
+  /**
+   * BEM block name for a root element.
+   */
   rootBlock?: string;
+
+  /**
+   * BEM modifier to be applied when root is valid (e.g. all elements inside the root are validated and valid)
+   */
   rootValidMod?: string;
+
+  /**
+   * BEM modifier to be applied when root is invalid (e.g. at least one element inside the root is validated and valid)
+   */
   rootInvalidMod?: string;
+
+  /**
+   * BEM block name for an input block.
+   * Input block as an optional element that wraps a single input.
+   * If input block element exists, it can contain a special 'errorElement' which holds an error message associated with wrapped input.
+   * If no errorElement exists, it is automatically created.
+   */
   inputBlock?: string;
+
+  /**
+   * BEM modifier to be applied to a valid input block (e.g. when wrapped element is validated and is valid)
+   */
   inputBlockValidMod?: string;
+
+  /**
+   * BEM modifier to be applied to an invalid input block (e.g. when wrapped element is validated and is invalid)
+   */
   inputBlockInvalidMod?: string;
+
+  /**
+   * Class name for an error element inside input block.
+   * If there are no element with given class inside an input block, a new node is created and attached to DOM.
+   */
   inputBlockErrorElem?: string;
+
+  /**
+   * A class to be applied to validated and valid element itself.
+   */
   inputValidClass?: string;
+
+  /**
+   * A class to be applied to validated and invalid element itself.
+   */
   inputInvalidClass?: string;
+
+  /**
+   * Error messages that should be shown.
+   */
   messages?: FormMessages;
+
+  /**
+   * When in live mode, whether the element should be revalidated on 'change' event (usually fired after user changed input value and the input has lost focus)
+   */
   revalidateOnChange?: boolean;
+
+  /**
+   * When in live mode, whether the element should be revalidated on 'input' event (if it is supported).
+   */
   revalidateOnInput?: boolean;
 }
 
@@ -224,6 +274,13 @@ function createCustomValidators(): void {
 const ATTRS_TO_INVALIDATE_CONSTRAINTS = [ 'type', 'required', 'min', 'max', 'step', 'pattern', 'minlength', 'formnovalidate' ];
 
 export class FormValidator {
+  /**
+   * Creates a validator attached to the given root element.
+   * It is not required for the root element to be a form.
+   * But if it is a form, its native validation is disabled and validation is implemented by this class.
+   * @param {HTMLFormElement} _root
+   * @param {FormValidatorOptions} options
+   */
   constructor(protected _root: HTMLFormElement, options?: FormValidatorOptions) {
     createCustomValidators();
 
@@ -277,7 +334,7 @@ export class FormValidator {
   }
 
   /**
-   * Call this function to validate the all elements of the root block.
+   * Call this function to validate the all elements inside the root block.
    * @param {boolean} silent Silent validation means that DOM is not altered in any way.
    * @returns {boolean} True if all elements are valid, false otherwise
    */
@@ -383,10 +440,18 @@ export class FormValidator {
     return assign({}, this._options);
   }
 
+  /**
+   * @returns {boolean} True if the validator is currently in live mode, false otherwise
+   */
   get liveValidation(): boolean {
     return this._liveValidation;
   }
 
+  /**
+   * Get validator object for the given root element.
+   * @param {Element} root
+   * @returns {FormValidator | null}
+   */
   static fromRoot(root: Element): FormValidator|null {
     if (!root) {
       return null;
@@ -394,6 +459,11 @@ export class FormValidator {
     return (root as any).__hidden_validator as FormValidator;
   }
 
+  /**
+   * Call this function to automatically create and initialize validators for all elements with given class in the current DOM.
+   * @param {string} rootClass Class of root element
+   * @param {FormValidatorOptions} options Options for validator objects
+   */
   static init(rootClass: string = 'js-validate', options?: FormValidatorOptions): void {
     let forms = document.querySelectorAll('.' + rootClass);
     for (let q = 0; q < forms.length; ++q) {
@@ -401,6 +471,17 @@ export class FormValidator {
     }
   }
 
+  /**
+   * You can create custom validators that can be attached to your inputs and manipulated by DOM.
+   * But you should register the constraint builder first.
+   * A constraint builder acts like a filter for constraints object and is called each time validator rebuilds constraints.
+   * Each constraint builder has a name.
+   * If an input has a data attribute in form of `data-validate-${constraint-builder-name}`, validator will call your constraint builder and give it constraint object to process.
+   * You are free to modify this object as you wish.
+   * @param {string} name
+   * @param {ConstraintBuilder} builder
+   * @param {CustomValidator} validator
+   */
   static addConstraintBuilder(name: string, builder: ConstraintBuilder, validator?: CustomValidator): void {
     if (this._constraintBuilders[name] != null) {
       throw new Error(`Cannot register a custom constraint builder: name [${name}] is already in use`);
@@ -416,6 +497,12 @@ export class FormValidator {
     }
   }
 
+  /**
+   * Formats a message, replacing placeholders in form $name with values from `params` object.
+   * @param {string} msg Message string to be formatted.
+   * @param {FormatParams} params Object holding parameters to be replaced
+   * @returns {string} Formatted string
+   */
   formatMsg(msg: string, params: FormatParams): string {
     const SEP_CHARCODE = '$'.charCodeAt(0),
         LOW_ALPHA_START = 'a'.charCodeAt(0),
@@ -469,6 +556,10 @@ export class FormValidator {
     return this.validate();
   }
 
+  /**
+   * It is guaranteed that after successfully calling this functions constraints are up-to date with DOM values.
+   * @private
+   */
   protected _ensureConstraintsAreBuilt(): void {
     if (!this._constraints || this._autoInvalidateConstraints) {
       this._rebuildElems();
@@ -495,6 +586,11 @@ export class FormValidator {
     }
   }
 
+  /**
+   * Called to set error state for the element in DOM.
+   * @param {string} msg Error message for the element
+   * @param {InputData} elem Element data
+   */
   protected setError(msg: string, elem: InputData): void {
     // set titles
     elem.elem.setAttribute('title', msg);
@@ -523,6 +619,10 @@ export class FormValidator {
     this.setRootHasErrors(true);
   }
 
+  /**
+   * Called to set valid state for the element in DOM
+   * @param {InputData} elem Element data
+   */
   protected clearError(elem: InputData): void {
     // clear titles
     elem.elem.setAttribute('title', '');
@@ -549,6 +649,10 @@ export class FormValidator {
     this.setRootHasErrors(this._hasInvalidElems());
   }
 
+  /**
+   * @returns {boolean} True if the root has at least validated and invalid element.
+   * @private
+   */
   protected _hasInvalidElems(): boolean {
     if (this._elems) {
       return Object.keys(this._elems).map(x => (this._elems as any)[x]).some(x => !x.valid);
@@ -556,6 +660,13 @@ export class FormValidator {
     return false;
   }
 
+  /**
+   * Updates input element data, getting its state from DOM.
+   * Validity state is not resetted.
+   * @param {InputData} data Element data
+   * @param {Element} elem Element node in DOM
+   * @private
+   */
   protected _updateInputData(data: InputData, elem: Element): void {
     let ib = closest(elem, '.' + this._options.inputBlock);
     if (!ib) {
@@ -577,12 +688,25 @@ export class FormValidator {
     data.errorElement = errorElement;
   }
 
+  /**
+   * Creates data entry for element inside the root.
+   * @param {Element} elem Element node in DOM
+   * @returns {InputData} Element data
+   * @private
+   */
   protected _buildInputData(elem: Element): InputData {
     let result: InputData = { valid: null } as InputData;
     this._updateInputData(result, elem);
     return result;
   }
 
+  /**
+   * Get unformatted message of the given class text for an element
+   * @param {Element} elem Element node
+   * @param {string} msgClasses List of message classes.
+   * @returns {string | null}
+   * @private
+   */
   protected _getElementMsg(elem: Element, ...msgClasses: string[]): string|null {
     for (let q = 0; q < msgClasses.length; ++q) {
       let msgClassUnderscored = 'data-msg-' + separated(msgClasses[q], '-'),
@@ -614,6 +738,11 @@ export class FormValidator {
     return null;
   }
 
+  /**
+   * Update element data.
+   * It synchronizes element data with DOM, removing data entries for element that has been removed from DOM, adding data for elements added to DOM and updating data for updated nodes.
+   * @private
+   */
   protected _rebuildElems(): void {
     if (!this._elems) {
       this._elems = { };
@@ -644,6 +773,11 @@ export class FormValidator {
     }
   }
 
+  /**
+   * Rebuilds constraint data from DOM data.
+   * Constraints are automatilly rebuilded when DOM is changed.
+   * @private
+   */
   protected _buildConstraints(): void {
     this._rebuildElems();
     if (!this._elems) {
@@ -816,6 +950,10 @@ export class FormValidator {
     }
   }
 
+  /**
+   * Enter live validation mode
+   * @private
+   */
   protected _beginLiveValidation(): void {
     if (this._liveValidation) {
       return;
@@ -844,15 +982,30 @@ export class FormValidator {
     this._liveValidation = true;
   }
 
+  /**
+   * Called when value of an element has been changed.
+   * @param {string} elemName
+   * @param {Event} e
+   */
   protected onElementChange(elemName: string, e: Event): void {
     this.validateSingle(elemName);
   }
 
+  /**
+   * Updates root node to reflect its validity state.
+   * @param {boolean} hasErrors
+   */
   protected setRootHasErrors(hasErrors: boolean) {
     toggleClass(this._root, this.rootValidClass, !hasErrors);
     toggleClass(this._root, this.rootInvalidClass, hasErrors);
   }
 
+  /**
+   * Helper function to get value of an element.
+   * @param {Element} elem
+   * @returns {string | null}
+   * @private
+   */
   protected _getInputValue(elem: Element): string|null {
     let value = (elem as HTMLInputElement).value;
     return value == null || value === '' ? null : value;
@@ -916,6 +1069,12 @@ function toggleClass(elem: Element, className: string, value: boolean): void {
   (value ? elem.classList.add : elem.classList.remove).call(elem.classList, className);
 }
 
+/**
+ * Helper function that converts a name into a name in underscore-separated format (in fact, you can replace an underscore with a character of your choice)
+ * @param {string} name Name in camel-case format (or mixed with underscores and dashes)
+ * @param {string} sep Separator to use instead of underscore
+ * @returns {string} Formatted name
+ */
 export function separated(name: string, sep: string = '_'): string {
   const CH_LG_LOWER = 'A'.charCodeAt(0),
       CH_LG_HIGH = 'Z'.charCodeAt(0);
@@ -939,6 +1098,11 @@ export function separated(name: string, sep: string = '_'): string {
   return result.join(sep);
 }
 
+/**
+ * Converts name where parts are separated with underscores or dashes to camel-case format
+ * @param {string} name
+ * @returns {string} Camel-case formatted name
+ */
 export function camel(name: string): string {
   let result = name.split(/[_\-]/).filter(x => x);
   return result.map((x, i) => i > 0 ? (x.slice(0, 1).toUpperCase() + x.slice(1).toLowerCase()) : x).join('');
