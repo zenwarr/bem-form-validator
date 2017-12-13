@@ -1,6 +1,6 @@
 import * as validate from "validate.js";
 import lodash_assign = require('lodash.assign');
-import closest from "zw-closest";
+import closest from '@zcomp/closest';
 
 export type ValidationConstraints =  { [name: string]: any };
 export type FormatParams = { [name: string]: any };

@@ -8,7 +8,7 @@ Everything else is done by this library.
 Run:
 
 ```javascript
-npm i --save zw-form-validator
+npm i --save @zcomp/form-validator
 ```
 
 If you love TypeScript, you can use it out-of-box, type definition files are already included in the package.
@@ -18,7 +18,7 @@ If you love TypeScript, you can use it out-of-box, type definition files are alr
 First, you need to import the library into your module.
 
 ```javascript
-const v = require('zw-form-validator');
+const v = require('@zcomp/form-validator');
 ```
 
 In all examples below, it is assumed that you have imported the module into constant named `v`.

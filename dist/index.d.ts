@@ -12,9 +12,6 @@ export interface InputData {
     errorElement: Element | null;
     valid: boolean | null;
 }
-/**
- * All classes follow BEM convention.
- */
 export interface FormValidatorOptions {
     /**
      * Class to be applied when root is valid (e.g. all elements inside the root are validated and valid)
