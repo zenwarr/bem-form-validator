@@ -23,22 +23,26 @@ const v = require('@zcomp/form-validator');
 
 In all examples below, it is assumed that you have imported the module into constant named `v`.
 
-For each form that needs to be validated, a FormValidator object should be created.
-You can do it either manually:
+Use exported `FormValidatorFactory` variable to create validator instances.
+For example, to create a validator for a single form:
 
 ```javascript
-let validator = new v.FormValidator(document.getElementById('form'));
+let validator = v.FormValidatorFactory.createComp(document.getElementById('form'));
 ```
 
-Or take advantage of static member function that automatically creates FormValidator instances for all elements that have a specific class.
-By default, it creates validators for elements with class `js-validate`.
+To create validators for all elements with class `js-validate`:
 
 ```javascript
-FormValidator.init();
+v.FormValidatorFactory.init();
 ```
 
-The first argument to this function is a class name, the second one is options that validator objects should take.
-FormValidator constructor takes an options object as an argument.
+You can change the class used to find elements for which validators should be created by changing `rootSelector` option:
+
+```javascript
+v.FormValidatorFactory.init({
+  rootSelector: '.js-form'
+});
+```
 
 ## HTML markup
 

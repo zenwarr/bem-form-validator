@@ -1,3 +1,4 @@
+import * as base from '@zcomp/base';
 export declare type ValidationConstraints = {
     [name: string]: any;
 };
@@ -12,7 +13,7 @@ export interface InputData {
     errorElement: Element | null;
     valid: boolean | null;
 }
-export interface FormValidatorOptions {
+export interface FormValidatorOptions extends base.ComponentOptions {
     /**
      * Class to be applied when root is valid (e.g. all elements inside the root are validated and valid)
      */
@@ -83,8 +84,8 @@ export interface FormMessages {
     lengthEqual?: string;
     lengthMax?: string;
 }
-export declare class FormValidator {
-    protected _root: HTMLFormElement;
+export declare const DefaultOptions: FormValidatorOptions;
+export declare class FormValidator extends base.Component<FormValidatorOptions> {
     /**
      * Creates a validator attached to the given root element.
      * It is not required for the root element to be a form.
@@ -92,7 +93,7 @@ export declare class FormValidator {
      * @param {HTMLFormElement} _root
      * @param {FormValidatorOptions} options
      */
-    constructor(_root: HTMLFormElement, options?: FormValidatorOptions);
+    constructor(_root: HTMLFormElement, options: FormValidatorOptions);
     /**
      * Call this function to validate the all elements inside the root block.
      * @param {boolean} silent Silent validation means that DOM is not altered in any way.
@@ -111,26 +112,9 @@ export declare class FormValidator {
      */
     readonly constraints: ValidationConstraints;
     /**
-     * @returns {Element} Form element assotiated with the object
-     */
-    readonly root: Element;
-    readonly options: FormValidatorOptions;
-    /**
      * @returns {boolean} True if the validator is currently in live mode, false otherwise
      */
     readonly liveValidation: boolean;
-    /**
-     * Get validator object for the given root element.
-     * @param {Element} root
-     * @returns {FormValidator | null}
-     */
-    static fromRoot(root: Element): FormValidator | null;
-    /**
-     * Call this function to automatically create and initialize validators for all elements with given class in the current DOM.
-     * @param {string} rootClass Class of root element
-     * @param {FormValidatorOptions} options Options for validator objects
-     */
-    static init(rootClass?: string, options?: FormValidatorOptions): void;
     /**
      * You can create custom validators that can be attached to your inputs and manipulated by DOM.
      * But you should register the constraint builder first.
@@ -241,7 +225,6 @@ export declare class FormValidator {
      * @private
      */
     protected _getInputValue(elem: Element): string | null;
-    private _options;
     private _constraints;
     private _elems;
     private _liveValidation;
@@ -261,3 +244,4 @@ export declare function separated(name: string, sep?: string): string;
  * @returns {string} Camel-case formatted name
  */
 export declare function camel(name: string): string;
+export declare const FormValidatorFactory: base.ComponentFactory<FormValidator, FormValidatorOptions>;

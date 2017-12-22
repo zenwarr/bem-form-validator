@@ -1,4 +1,4 @@
-import {camel, FormValidator, separated} from "./index";
+import {camel, FormValidator, FormValidatorFactory, separated} from "./index";
 import { expect } from 'chai';
 
 describe('FormValidator', function() {
@@ -35,21 +35,21 @@ describe('FormValidator', function() {
     };
 
     it('should initialize validator', function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.root).to.be.equal(form);
       expect(form.getAttribute('novalidate')).to.be.equal('');
-      expect(FormValidator.fromRoot(form)).to.be.equal(validator);
+      expect(FormValidatorFactory.fromRoot(form)).to.be.equal(validator);
     });
 
     it('should not set novalidate attribute on non-form root', function () {
       let root = document.getElementById('form-contents') as HTMLFormElement;
-      let validator = new FormValidator(root);
+      let validator = FormValidatorFactory.createComp(FormValidator, root);
       expect(validator.root).to.be.equal(root);
       expect(root.getAttribute('novalidate')).to.be.null;
     });
 
     it('should create correct constraints', function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.constraints).to.be.deep.equal({
         name: {
           length: {
@@ -77,7 +77,7 @@ describe('FormValidator', function() {
     });
 
     it('should set validation classes on an invalid form', function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       validator.validate();
       expect(form.classList.contains('form--valid')).to.be.false;
       expect(form.classList.contains('form--invalid')).to.be.true;
@@ -87,7 +87,7 @@ describe('FormValidator', function() {
     });
 
     it('should set validation classes on a valid form', function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       putValidValues();
       expect(validator.validate()).to.be.true;
       expect(form.classList.contains('form--valid')).to.be.true;
@@ -95,13 +95,13 @@ describe('FormValidator', function() {
     });
 
     it('should validate a single element', function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.validateSingle('name')).to.be.false;
       expect(form.classList.contains('form--invalid')).to.be.true;
     });
 
     it('should return true for a validation of non existing element', function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.validateSingle('non-existent')).to.be.true;
     });
 
@@ -207,7 +207,7 @@ describe('FormValidator', function() {
     });
 
     it('should format messages', function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       number.value = '5';
 
       validator.validate();
@@ -248,9 +248,9 @@ describe('FormValidator', function() {
     });
 
     it('should initialize forms with validation class', function () {
-      FormValidator.init();
+      FormValidatorFactory.init();
 
-      expect(FormValidator.fromRoot(form)).to.not.be.null;
+      expect(FormValidatorFactory.fromRoot(form)).to.not.be.null;
     });
   });
 
@@ -326,7 +326,7 @@ describe('FormValidator', function() {
         return value !== options.value ? options.message || 'no error message' : null;
       });
 
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.constraints).to.be.deep.equal({
         extended: {
           extra: {
@@ -349,7 +349,7 @@ describe('FormValidator', function() {
       `;
 
       let form = document.getElementById('form') as HTMLFormElement;
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.constraints).to.be.deep.equal({
         input_name: {
           url: true
@@ -371,7 +371,7 @@ describe('FormValidator', function() {
       let text1 = document.getElementById('text1') as HTMLInputElement;
       let text2 = document.getElementById('text2') as HTMLInputElement;
 
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.constraints).to.be.deep.equal({
         text1: {
           equality: {
@@ -400,7 +400,7 @@ describe('FormValidator', function() {
 
       let form = document.getElementById('form') as HTMLFormElement;
       let input = document.getElementById('input') as HTMLInputElement;
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
 
       input.value = '2';
       expect(validator.validate()).to.be.false;
@@ -423,7 +423,7 @@ describe('FormValidator', function() {
       `;
 
       let form = document.getElementById('form') as HTMLFormElement;
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
 
       expect(validator.constraints).to.be.deep.equal({
         i1: {
@@ -508,7 +508,7 @@ describe('FormValidator', function() {
       `;
 
       let form = document.getElementById('form') as HTMLFormElement;
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
 
       expect(validator.constraints).to.be.deep.equal({
 
@@ -529,7 +529,7 @@ describe('FormValidator', function() {
       `;
 
       form = document.getElementById('form') as HTMLFormElement;
-      validator = new FormValidator(form);
+      validator = FormValidatorFactory.createComp(FormValidator, form);
     });
 
     it("validate", function () {
@@ -561,7 +561,7 @@ describe('FormValidator', function() {
     }
 
     it("should validate changing inputs", function () {
-      let validator = new FormValidator(form);
+      let validator = FormValidatorFactory.createComp(FormValidator, form);
       expect(validator.validate()).to.be.true;
 
       addInput();

@@ -1,6 +1,6 @@
 import * as validate from "validate.js";
-import lodash_assign = require('lodash.assign');
 import closest from '@zcomp/closest';
+import * as base from '@zcomp/base';
 
 export type ValidationConstraints =  { [name: string]: any };
 export type FormatParams = { [name: string]: any };
@@ -14,7 +14,7 @@ export interface InputData {
   valid: boolean|null;
 }
 
-export interface FormValidatorOptions {
+export interface FormValidatorOptions extends base.ComponentOptions {
   /**
    * Class to be applied when root is valid (e.g. all elements inside the root are validated and valid)
    */
@@ -109,7 +109,8 @@ const RussianFormMessages: FormMessages = {
   step: 'Число должно быть с шагом в $step'
 };
 
-const OPTION_DEFAULTS: FormValidatorOptions = {
+export const DefaultOptions: FormValidatorOptions = {
+  rootSelector: '.js-validate',
   rootValidClass: 'form--valid',
   rootInvalidClass: 'form--invalid',
   inputBlockClass: 'ib',
@@ -202,7 +203,7 @@ function createCustomValidators(): void {
 
   function setConstraintProp(constraint: any, prop: string, options: any): void {
     if (constraint[prop]) {
-      assign(constraint[prop], options);
+      base.assign(constraint[prop], options);
     } else {
       constraint[prop] = options;
     }
@@ -265,7 +266,7 @@ function createCustomValidators(): void {
 
 const ATTRS_TO_INVALIDATE_CONSTRAINTS = [ 'type', 'required', 'min', 'max', 'step', 'pattern', 'minlength', 'formnovalidate' ];
 
-export class FormValidator {
+export class FormValidator extends base.Component<FormValidatorOptions> {
   /**
    * Creates a validator attached to the given root element.
    * It is not required for the root element to be a form.
@@ -273,17 +274,15 @@ export class FormValidator {
    * @param {HTMLFormElement} _root
    * @param {FormValidatorOptions} options
    */
-  constructor(protected _root: HTMLFormElement, options?: FormValidatorOptions) {
-    createCustomValidators();
+  constructor(_root: HTMLFormElement, options: FormValidatorOptions) {
+    super(_root, base.assign({}, DefaultOptions, options));
 
-    this._options = assign({}, OPTION_DEFAULTS, options || {});
+    createCustomValidators();
 
     if (this._root.tagName.toLowerCase() === 'form') {
       this._root.setAttribute('novalidate', '');
       this._root.addEventListener('submit', this.onSubmit.bind(this));
     }
-
-    this._root.__hidden_validator = this;
 
     // react on changes in DOM that can trigger changes in constraints
     if ((window as any).MutationObserver) {
@@ -381,45 +380,10 @@ export class FormValidator {
   }
 
   /**
-   * @returns {Element} Form element assotiated with the object
-   */
-  get root(): Element {
-    return this._root;
-  }
-
-  get options(): FormValidatorOptions {
-    return assign({}, this._options);
-  }
-
-  /**
    * @returns {boolean} True if the validator is currently in live mode, false otherwise
    */
   get liveValidation(): boolean {
     return this._liveValidation;
-  }
-
-  /**
-   * Get validator object for the given root element.
-   * @param {Element} root
-   * @returns {FormValidator | null}
-   */
-  static fromRoot(root: Element): FormValidator|null {
-    if (!root) {
-      return null;
-    }
-    return (root as any).__hidden_validator as FormValidator;
-  }
-
-  /**
-   * Call this function to automatically create and initialize validators for all elements with given class in the current DOM.
-   * @param {string} rootClass Class of root element
-   * @param {FormValidatorOptions} options Options for validator objects
-   */
-  static init(rootClass: string = 'js-validate', options?: FormValidatorOptions): void {
-    let forms = document.querySelectorAll('.' + rootClass);
-    for (let q = 0; q < forms.length; ++q) {
-      new FormValidator(forms[q] as HTMLFormElement, options);
-    }
   }
 
   /**
@@ -976,20 +940,11 @@ export class FormValidator {
     return value == null || value === '' ? null : value;
   }
 
-  private _options: FormValidatorOptions;
   private _constraints: ValidationConstraints|null = null;
   private _elems: { [name: string]: InputData }|null = null;
   private _liveValidation: boolean = false;
   private _autoInvalidateConstraints: boolean = false;
   private static _constraintBuilders: { [name: string]: ConstraintBuilder } = { };
-}
-
-function assign<T>(...objs: T[]): T {
-  if ((Object as any).assign) {
-    return (Object as any).assign.apply(this, objs);
-  } else {
-    return lodash_assign.apply(this, objs);
-  }
 }
 
 function toggleClass(elem: Element, className: string, value: boolean): void {
@@ -1034,3 +989,5 @@ export function camel(name: string): string {
   let result = name.split(/[_\-]/).filter(x => x);
   return result.map((x, i) => i > 0 ? (x.slice(0, 1).toUpperCase() + x.slice(1).toLowerCase()) : x).join('');
 }
+
+export const FormValidatorFactory = new base.ComponentFactory<FormValidator, FormValidatorOptions>('validator', DefaultOptions, FormValidator);
