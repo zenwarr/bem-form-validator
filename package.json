@@ -1,11 +1,11 @@
 {
   "name": "@zcomp/form-validator",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@zcomp/base": "0.0.3",
+    "@zcomp/base": "0.0.6",
     "@zcomp/closest": "^0.0.2",
     "validate.js": "^0.12.0"
   },
