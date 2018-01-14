@@ -277,6 +277,10 @@ export class FormValidator extends base.Component<FormValidatorOptions> {
   constructor(_root: HTMLFormElement, options: FormValidatorOptions) {
     super(_root, base.assign({}, DefaultOptions, options));
 
+    if (this.options.rootSelector && this.root.querySelector(this.options.rootSelector)) {
+      console.warn(`Unsupported nesting for selector ${this.options.rootSelector}`, this.root);
+    }
+
     createCustomValidators();
 
     if (this._root.tagName.toLowerCase() === 'form') {
